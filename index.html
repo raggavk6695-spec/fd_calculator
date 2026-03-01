@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Offline FD Return Calculator</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --primary: #0f172a;
+            --secondary: #64748b;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --ring: rgba(37, 99, 235, 0.2);
+            --radius-lg: 24px;
+            --radius-md: 12px;
+            --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --surface: #1e293b;
+                --primary: #f8fafc;
+                --secondary: #94a3b8;
+                --accent: #3b82f6;
+                --accent-hover: #60a5fa;
+                --border: #334155;
+                --ring: rgba(59, 130, 246, 0.3);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background-color: var(--bg);
+            color: var(--primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            margin-top: 2vh;
+            margin-bottom: 4vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            color: var(--secondary);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .prefix, .suffix {
+            position: absolute;
+            color: var(--secondary);
+            font-weight: 500;
+            pointer-events: none;
+        }
+
+        .prefix { left: 16px; }
+        .suffix { right: 16px; }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px; /* Prevents iOS zoom */
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--bg);
+            color: var(--primary);
+            font-family: inherit;
+            transition: all 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input.has-prefix { padding-left: 36px; }
+        input.has-suffix { padding-right: 36px; }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--surface);
+            box-shadow: 0 0 0 4px var(--ring);
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            select {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            }
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .results {
+            background: var(--accent);
+            color: #ffffff;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+            display: none;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .results::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+        }
+
+        .results.active {
+            display: block;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            z-index: 1;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .result-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .total-box {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .total-box .result-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .total-box .result-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 4px;
+            display: block;
+        }
+        
+        /* Remove arrows from number inputs */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>FD Calculator</h1>
+        <p>Plan your fixed deposit returns</p>
+    </div>
+    
+    <div class="card">
+        <div class="input-group">
+            <label for="amount">Deposit Amount</label>
+            <div class="input-wrapper">
+                <span class="prefix">₹</span>
+                <input type="number" id="amount" class="has-prefix" placeholder="100000" min="0" step="any" oninput="calculateFD()">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="rate">Interest Rate (p.a.)</label>
+            <div class="input-wrapper">
+                <input type="number" id="rate" class="has-suffix" placeholder="7.5" min="0" step="any" oninput="calculateFD()">
+                <span class="suffix">%</span>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Tenure</label>
+            <div class="grid-3">
+                <div class="input-wrapper">
+                    <input type="number" id="years" placeholder="Yrs" min="0" oninput="calculateFD()">
+                </div>
+                <div class="input-wrapper">
+                    <input type="number" id="months" placeholder="Mos" min="0" oninput="calculateFD()">
+                </div>
+                <div class="input-wrapper">
+                    <input type="number" id="days" placeholder="Days" min="0" oninput="calculateFD()">
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="compounding">Compounding Frequency</label>
+            <select id="compounding" onchange="calculateFD()">
+                <option value="12">Monthly</option>
+                <option value="4" selected>Quarterly</option>
+                <option value="2">Half-Yearly</option>
+                <option value="1">Yearly</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="payout">Payout Type</label>
+            <select id="payout" onchange="calculateFD()">
+                <option value="reinvestment">Reinvestment (Cumulative)</option>
+                <option value="monthly">Monthly Payout</option>
+                <option value="quarterly">Quarterly Payout</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="results" id="results">
+        <div class="result-row" id="periodic-row" style="display: none;">
+            <span class="result-label" id="periodic-label">Periodic Payout</span>
+            <span class="result-value" id="periodic-value">₹0</span>
+        </div>
+        <div class="result-row">
+            <span class="result-label">Total Interest</span>
+            <span class="result-value" id="total-interest">₹0</span>
+        </div>
+        <div class="total-box">
+            <span class="result-label">Maturity Amount</span>
+            <span class="result-value" id="maturity-amount">₹0</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(amount);
+    }
+
+    function calculateFD() {
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const rate = parseFloat(document.getElementById('rate').value) || 0;
+        const years = parseInt(document.getElementById('years').value) || 0;
+        const months = parseInt(document.getElementById('months').value) || 0;
+        const days = parseInt(document.getElementById('days').value) || 0;
+        const compoundingFreq = parseInt(document.getElementById('compounding').value);
+        const payoutType = document.getElementById('payout').value;
+
+        const resultsDiv = document.getElementById('results');
+
+        // Only show results if we have valid inputs
+        if (amount <= 0 || rate <= 0 || (years === 0 && months === 0 && days === 0)) {
+            resultsDiv.classList.remove('active');
+            // Wait for animation to finish before hiding
+            setTimeout(() => {
+                if (!resultsDiv.classList.contains('active')) {
+                    resultsDiv.style.display = 'none';
+                }
+            }, 400);
+            return;
+        }
+
+        // Ensure it's visible before adding active class for animation
+        if (resultsDiv.style.display === 'none' || resultsDiv.style.display === '') {
+            resultsDiv.style.display = 'block';
+            // Trigger reflow
+            void resultsDiv.offsetWidth;
+            resultsDiv.classList.add('active');
+        }
+
+        const t = years + (months / 12) + (days / 365);
+        const r = rate / 100;
+        const n = compoundingFreq;
+
+        let maturityAmount = 0;
+        let totalInterest = 0;
+        let periodicInterest = 0;
+        let periodicLabel = "";
+
+        const periodicRow = document.getElementById('periodic-row');
+
+        if (payoutType === 'reinvestment') {
+            maturityAmount = amount * Math.pow(1 + r / n, n * t);
+            totalInterest = maturityAmount - amount;
+            
+            periodicRow.style.display = 'none';
+        } else if (payoutType === 'monthly') {
+            periodicInterest = amount * (Math.pow(1 + r / n, n / 12) - 1);
+            totalInterest = periodicInterest * (t * 12);
+            maturityAmount = amount;
+            
+            periodicLabel = "Monthly Payout";
+            periodicRow.style.display = 'flex';
+        } else if (payoutType === 'quarterly') {
+            periodicInterest = amount * (Math.pow(1 + r / n, n / 4) - 1);
+            totalInterest = periodicInterest * (t * 4);
+            maturityAmount = amount;
+            
+            periodicLabel = "Quarterly Payout";
+            periodicRow.style.display = 'flex';
+        }
+
+        if (periodicLabel) {
+            document.getElementById('periodic-label').innerText = periodicLabel;
+            document.getElementById('periodic-value').innerText = formatCurrency(periodicInterest);
+        }
+        
+        document.getElementById('total-interest').innerText = formatCurrency(totalInterest);
+        document.getElementById('maturity-amount').innerText = formatCurrency(maturityAmount);
+    }
+</script>
+
+</body>
+</html>
